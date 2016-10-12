@@ -842,14 +842,14 @@ class BlocksTagLib {
         if (attrs.id == null)
             throw new IllegalArgumentException("Attribute 'id' must be defined!")
 
-        out << createLink(g.createLink(action: 'show', id: attrs.id), 'btn btn-app-sms btn-success', 'fa fa-eye', null);
+        out << createLink(g.createLink(action: 'show', id: attrs.id), 'btn btn-app-sms btn-success btn-table-header', 'fa fa-eye', null);
     }
 
     def editLink = { attrs ->
         if (attrs.id == null)
             throw new IllegalArgumentException("Attribute 'id' must be defined!")
 
-        out << createLink(g.createLink(action: 'edit', id: attrs.id), 'btn btn-app-sms btn-info', 'fa fa-edit', null);
+        out << createLink(g.createLink(action: 'edit', id: attrs.id), 'btn btn-app-sms btn-info btn-table-header', 'fa fa-edit', null);
     }
 
     def deleteLink = { attrs ->
@@ -887,7 +887,7 @@ class BlocksTagLib {
                 .append("',onClick:function(\$noty){\$noty.close();}}]});}")
 
 
-        out << createLink('', 'btn btn-app-sms btn-danger', 'fa fa-trash', sb.toString());
+        out << createLink('', 'btn btn-app-sms btn-danger btn-table-header', 'fa fa-trash', sb.toString());
     }
 
     /**
