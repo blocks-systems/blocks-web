@@ -1,5 +1,7 @@
 package blocks
 
+import blocks.organization.OrgUnit
+import blocks.organization.OrgUnitController
 import grails.plugin.springsecurity.SpringSecurityUtils
 import groovy.xml.MarkupBuilder
 import org.apache.commons.lang3.StringUtils
@@ -307,7 +309,6 @@ class BlocksTagLib {
     }
 
     def field = { attrs, body ->
-        log.debug("field attrs: ${attrs} and body: ${body}")
         if (attrs.id == null) attrs.id = "field_" + attrs.hashCode()
         if (request.xhr) attrs.id += "_xhr"
         def error = StringUtils.isNotBlank(attrs.error) ? attrs.error : '';
@@ -1007,6 +1008,77 @@ class BlocksTagLib {
         sb.flush()
 
         out << sb.toString()
+    }
+
+    def orgUnitTree = { attrs, body ->
+        final StringWriter sb = new StringWriter()
+        sb.append("<div class='tree'><ul>")
+        def childUnits = OrgUnit.findAllByParentUnitIsNull()
+        if(!childUnits.isEmpty()) {
+            for (OrgUnit child: childUnits) {
+                sb.append(buildSubTree(child))
+            }
+            sb.append("</ul></li>")
+        } else {
+            sb.append("<li><div>EMPTY ORGANIZATION</div></li>")
+        }
+        sb.append("</ul></div>")
+        out << sb.toString()
+    }
+
+    def buildSubTree(OrgUnit bean) {
+        final StringWriter sb = new StringWriter()
+        def childUnits = OrgUnit.findAllByParentUnit(bean,[sort: "parentUnit", order: "desc"])
+        if(!childUnits.isEmpty()) {
+            sb.append("<li><div><p><strong>${bean.name}</strong></p>")
+            sb.append("<a id='add_orgUnit_${bean.id}' class='create btn btn-primary btn-table-header'><span class='fa fa-plus'></span></a>" +
+                    "<a id='show_orgUnit_${bean.id}' class='btn btn-app-sms btn-info btn-table-header'><span class='fa fa-edit'></span></a>" +
+                    deleteLink(id: bean.id, controller: 'orgUnit') +
+                    "</div><ul>")
+
+            sb.append("<script>").append("\$(document).ready(function() {")
+            if (!request.xhr) {
+
+                def buttonId = "add_orgUnit_${bean.id}"
+                def saveLink = g.createLink(controller: 'orgUnit', action: 'ajaxSave')
+                def link = g.createLink(controller: 'orgUnit', action: 'ajaxCreateChild',id: bean.id)
+                sb.append(createAddAjaxForm("show_orgUnit_${bean.id}", 'orgUnit', g.createLink(controller: 'orgUnit', action: 'ajaxEdit'), "${bean.id}", saveLink, 'orgUnit', 'orgUnit', false, true));
+                def createAddAjaxFormS = createAddAjaxForm(buttonId, 'orgUnit', link, null, saveLink, 'orgUnit', 'orgUnit', false, true)
+                log.debug(createAddAjaxFormS)
+                sb.append(createAddAjaxFormS);
+            }
+            sb.append("});").append("</script>")
+            for (OrgUnit child: childUnits) {
+                sb.append(buildSubTree(child))
+            }
+            sb.append("</ul></li>")
+        } else {
+            sb.append(buildTreeItem(bean)).append("</li>")
+        }
+        return sb.toString()
+    }
+
+    def buildTreeItem(OrgUnit bean) {
+        final StringWriter sb = new StringWriter()
+        sb.append("<li><div><p><strong>${bean.name}</strong></p>")
+        sb.append("<a id='add_orgUnit_${bean.id}' class='create btn btn-primary btn-table-header'><span class='fa fa-plus'></span></a>" +
+                "<a id='show_orgUnit_${bean.id}' class='btn btn-app-sms btn-info btn-table-header'><span class='fa fa-edit'></span></a>" +
+                deleteLink(id: bean.id, controller: 'orgUnit') +
+                "</div>")
+
+        sb.append("<script>").append("\$(document).ready(function() {")
+        if (!request.xhr) {
+
+            def buttonId = "add_orgUnit_${bean.id}"
+            def saveLink = g.createLink(controller: 'orgUnit', action: 'ajaxSave')
+            def link = g.createLink(controller: 'orgUnit', action: 'ajaxCreateChild',id: bean.id)
+            sb.append(createAddAjaxForm("show_orgUnit_${bean.id}", 'orgUnit', g.createLink(controller: 'orgUnit', action: 'ajaxEdit'), "${bean.id}", saveLink, 'orgUnit', 'orgUnit', false, true));
+            def createAddAjaxFormS = createAddAjaxForm(buttonId, 'orgUnit', link, null, saveLink, 'orgUnit', 'orgUnit', false, true)
+            log.debug(createAddAjaxFormS)
+            sb.append(createAddAjaxFormS);
+        }
+        sb.append("});").append("</script>")
+        return sb.toString()
     }
 
     def attachments = { attrs, body ->
