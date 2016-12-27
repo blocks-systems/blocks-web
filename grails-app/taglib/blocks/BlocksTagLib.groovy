@@ -1092,15 +1092,15 @@ class BlocksTagLib {
             final StringBuilder sb = new StringBuilder()
             sb.append("<div id='$wrapper'>")
             bean?.getAttachments(inputName)?.each { attachment ->
-                def attachmentLink = g.createLink(controller: 'attachment', action: 'show', params:['id':attachment.id])
+                def attachmentLink = g.createLink(controller: 'attachmentable', action: 'show', params:['id':attachment.id])
                 sb.append("<div id='$inputName" + "_$attachment.id' class='col-lg-6 col-md-12 col-xs-12 col-sm-12'>")
                         .append("<iframe id='iframepdf_$attachment.id'  style='width: 100%; height:425px;' frameborder='0' src='${attachmentLink}'></iframe>")
-                        .append(deleteLink(id: attachment.id, controller: 'attachment', callback: "\$('#$inputName" + "_$attachment.id').remove();"))
-                        .append(createLink(g.createLink(action: 'download', controller: 'attachment', id: attachment.id), 'btn btn-app-sms btn-success pull-right', 'fa fa-download', null))
+                        .append(deleteLink(id: attachment.id, controller: 'attachmentable', callback: "\$('#$inputName" + "_$attachment.id').remove();"))
+                        .append(createLink(g.createLink(action: 'download', controller: 'attachmentable', id: attachment.id), 'btn btn-app-sms btn-success pull-right', 'fa fa-download', null))
                         .append("</div>")
             }
             sb.append("</div>")
-            def uploadLink = g.createLink(controller: 'attachment', action: 'upload')
+            def uploadLink = g.createLink(controller: 'attachmentable', action: 'upload')
             def addMsg = g.message(code: 'attachment.upload.add.button.name')
             sb.append("<div class='form-group col-lg-12'>")
                     .append("<form id='$inputName" + "UploadForm' class='MultiFile-intercepted' enctype='multipart/form-data' name='$inputName" + "UploadForm' method='post' action='$uploadLink'>")
@@ -1112,9 +1112,9 @@ class BlocksTagLib {
                     .append("</div>").append("</form>").append("</div>")
 
             //javascript
-            def showLink = g.createLink(controller: 'attachment', action: 'show')
-            def downloadLink = g.createLink(controller: 'attachment', action: 'download')
-            def deleteLink = g.createLink(controller: 'attachment', action: 'delete')
+            def showLink = g.createLink(controller: 'attachmentable', action: 'show')
+            def downloadLink = g.createLink(controller: 'attachmentable', action: 'download')
+            def deleteLink = g.createLink(controller: 'attachmentable', action: 'delete')
             sb.append("<script>").append("\$(document).ready(function(){")
                     .append("\$('#$inputName').on('change',function(){\$('#$inputName" + "UploadForm').submit();});")
                     .append("var form = \$('#$inputName" + "UploadForm').ajaxForm({")
