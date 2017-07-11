@@ -1,12 +1,11 @@
 package blocks
 
-import grails.plugins.Plugin
-import org.grails.spring.context.support.PluginAwareResourceBundleMessageSource
+import grails.plugins.*
 
 class BlocksWebGrailsPlugin extends Plugin {
 
     // the version or versions of Grails the plugin is designed for
-    def grailsVersion = "3.1.4 > *"
+    def grailsVersion = "3.2.11 > *"
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
         "grails-app/views/error.gsp"
@@ -14,7 +13,7 @@ class BlocksWebGrailsPlugin extends Plugin {
 
     // TODO Fill in these fields
     def title = "Blocks Web" // Headline display name of the plugin
-    def author = "Filip Grochowski, Emil Wesolowski"
+    def author = "Your name"
     def authorEmail = ""
     def description = '''\
 Brief summary/description of the plugin.
@@ -41,13 +40,8 @@ Brief summary/description of the plugin.
     // Online location of the plugin's browseable source code.
 //    def scm = [ url: "http://svn.codehaus.org/grails-plugins/" ]
 
-    Closure doWithSpring() {
-        { ->
-            def beanconf = springConfig.getBeanConfig('messageSource')
-            def beandef = beanconf ? beanconf.beanDefinition : springConfig.getBeanDefinition('messageSource')
-            if (beandef?.beanClassName == PluginAwareResourceBundleMessageSource.class.canonicalName) {
-                beandef.beanClassName = ExposedKeysMessageSource.class.canonicalName
-            }
+    Closure doWithSpring() { {->
+            // TODO Implement runtime spring config (optional)
         }
     }
 
