@@ -538,6 +538,118 @@ class BlocksTagLib {
         out << sb.toString()
     }
 
+    def eventKindIconPicker = { attrs ->
+        if (attrs.id == null) attrs.id = "field_" + attrs.hashCode()
+        if (request.xhr) attrs.id += "_xhr"
+        def error = StringUtils.isNotBlank(attrs.error) ? attrs.error : '';
+        attrs.remove('error')
+
+        final StringWriter sb = new StringWriter()
+        def builder = new MarkupBuilder(sb)
+
+        builder."div"('class': 'col-sm-2 control-label') {
+            def labelCode = attrs.labelCode != null ? attrs.labelCode : 'label'
+            def labelMsg = g.message(code: labelCode)
+            label('for': attrs.id, labelMsg)
+        }
+        builder."div"('class': 'col-sm-4') {
+            'input'('name':attrs.id, 'id':attrs.id, 'class':'form-control',
+                    'type':'hidden', 'value':attrs.value ?: '')
+            div('class':'btn-group') {
+                button('class':'btn btn-primary iconpicker-component', 'type':'button') {
+                    i('','class':attrs.value ?: 'fa fa-ellipsis-h')
+                }
+                button('class':'icp icp-dd btn btn-primary dropdown-toggle iconpicker-element',
+                        'data-toggle':'dropdown', 'data-selected':'fa-car', 'type':'button') {
+                    span('', 'class':'caret')
+                    span('', 'class':'sr-only')
+                }
+                div('class':'dropdown-menu iconpicker-container') {
+                    div('class':'iconpicker-popover popover fade in inline',
+                            'style':'top: auto; right: auto; bottom: auto; left: auto; max-width: none;') {
+                        div('', 'class':'arrow')
+                        div('class':'popover-content') {
+                            div('class':'iconpicker') {
+                                div('class':'iconpicker-items') {
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-asterisk') {
+                                        i('', 'class':'fa fa-asterisk')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button', 'title':'.fa-plus') {
+                                        i('', 'class':'fa fa-plus')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-edit') {
+                                        i('', 'class':'fa fa-edit')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-thumb-tack') {
+                                        i('','class':'fa fa-thumb-tack')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-paperclip') {
+                                        i('','class':'fa fa-paperclip')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-exchange') {
+                                        i('', 'class':'fa fa-exchange')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-exclamation') {
+                                        i('', 'class':'fa fa-exclamation')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-info') {
+                                        i('', 'class':'fa fa-info')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-money') {
+                                        i('', 'class':'fa fa-money')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-archive') {
+                                        i('', 'class':'fa fa-archive')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-recycle') {
+                                        i('', 'class':'fa fa-recycle')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-lock') {
+                                        i('', 'class':'fa fa-lock')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-pause') {
+                                        i('', 'class':'fa fa-pause')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-play') {
+                                        i('', 'class':'fa fa-play')
+                                    }
+                                    a('class':'iconpicker-item', 'href':'#', 'role':'button',
+                                            'title':'.fa-stop') {
+                                        i('', 'class':'fa fa-stop')
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // JavaScript Code
+        sb.append("<script type='text/javascript'>").append("\$(function() {")
+        sb.append("\$('.iconpicker-item').on('click', function(e) {")
+        sb.append("\$('#statusIcon').val(\$(this).find('i').attr('class'));")
+        sb.append("\$('.iconpicker-component').find('i').get(0).className = \$(this).find('i').attr('class');")
+        sb.append("});});").append("</script>")
+
+        sb.flush()
+
+        out << sb.toString()
+    }
+
     def statusIconPicker = { attrs ->
         if (attrs.id == null) attrs.id = "field_" + attrs.hashCode()
         if (request.xhr) attrs.id += "_xhr"
