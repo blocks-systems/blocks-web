@@ -9,6 +9,7 @@ import org.apache.commons.logging.LogFactory
 import org.springframework.web.servlet.support.RequestContextUtils
 
 import java.text.DecimalFormat
+import java.text.SimpleDateFormat
 
 /**
  * Taglibs for blocks
@@ -142,7 +143,138 @@ class BlocksTagLib {
 
         // JavaScript Code
         def locale = RequestContextUtils.getLocale(request).toString().substring(0, 2)
-        sb.append("<script>").append("\$(document).ready(function() {").append("\$('#$attrs.id').select2({language:'$locale',theme:'bootstrap'});")
+        sb.append("<script>").append("\$(document).ready(function() {").append("\$('#$attrs.id').select2({language:'$locale'});")
+        if (!request.xhr) {
+            def dialogTitleCode = attrs.dialogTitle != null ? attrs.dialogTitle : attrs.controller
+            if (!hideShow) {
+                def saveLink = g.createLink(controller: attrs.controller, action: 'ajaxSave')
+                sb.append("\$('#$attrs.id').on('change', function(event) {")
+                        .append("if(\$(this).val() == ''){\$('#show_$attrs.id').addClass('disabled');}else{\$('#show_$attrs.id').removeClass('disabled');}")
+                        .append("});")
+                        .append("if(\$('#$attrs.id').val() == ''){\$('#show_$attrs.id').addClass('disabled');}else{\$('#show_$attrs.id').removeClass('disabled');}")
+
+                sb.append(createAddAjaxForm('show_' + attrs.id, attrs.controller, g.createLink(controller: attrs.controller, action: 'ajaxEdit'), "\$('#$attrs.id').val()", saveLink, dialogTitleCode, attrs.id, false, saveAccess));
+            }
+            if (attrs.create != null) {
+                def buttonId = "add_$attrs.id"
+                def saveLink = g.createLink(controller: attrs.controller, action: 'ajaxSave')
+                def link = g.createLink(controller: attrs.controller, action: 'ajaxCreate')
+                sb.append(createAddAjaxForm(buttonId, attrs.controller, link, null, saveLink, dialogTitleCode, attrs.id, false, saveAccess));
+            }
+        }
+        if (required) {
+            sb.append("\$('#$attrs.id').on('change', function(event) {").append("if(\$(this).val()!='' && \$('#$attrs.id').prop('oninput')!==null){\$('#$attrs.id')[0].oninput();}").append("});")
+        }
+        if (readOnly) {
+            sb.append("\$('#").append(attrs.id).append("')").append(".closest('form').on('submit', function(event) {")
+            sb.append("\$('#").append(attrs.id).append("').attr('disabled', false);")
+            sb.append("});")
+        }
+        sb.append("});").append("</script>")
+
+
+        sb.flush()
+
+        out << sb.toString()
+    }
+
+    /**
+     * Select Taglib by chmielpiwny
+     * @usages:
+     * 1) hideShow - Boolean - param defining ajax show in modal box
+     * 2) controller - controller which has action 'ajaxEdit' to load show/edit in modal box
+     * 3) create - controller which has action 'ajaxCreate' to create new object in modal box
+     *
+     */
+    def select2 = { attrs, body ->
+        if (attrs.id == null) attrs.id = "select_" + attrs.hashCode()
+        //if (request.xhr) attrs.id += "_xhr"
+        def error = StringUtils.isNotBlank(attrs.error) ? attrs.error : '';
+        attrs.remove('error')
+        def hideShow = (attrs.hideShow != null && Boolean.valueOf(attrs.hideShow)) ? true : false
+        // if controller not provided hide show must be true
+        if (attrs.controller == null && !hideShow && !request.xhr) hideShow = Boolean.TRUE
+
+        final StringWriter sb = new StringWriter()
+        def builder = new MarkupBuilder(sb)
+
+        sb.append("<div class='" + error + "'>")
+
+        if (attrs.noSelection == null && !"multiple".equalsIgnoreCase(attrs.multiple)) attrs.noSelection = ['' : g.message(code: "default.select.empty.value")]
+
+        def origAttrsMinusCustom = new HashMap(attrs)
+
+        def required = (attrs.required != null && Boolean.valueOf(attrs.required))
+        origAttrsMinusCustom.remove('required')
+        if (required){
+            origAttrsMinusCustom['required'] = "required"
+            origAttrsMinusCustom['oninvalid'] = "this.setCustomValidity('" << g.message(code: 'default.required') << "');"
+            origAttrsMinusCustom['oninput'] = "this.setCustomValidity('');"
+        }
+
+        builder."div"('class': 'col-sm-2 control-label') {
+            def labelCode = attrs.labelCode != null ? attrs.labelCode : 'label'
+            def labelMsg = g.message(code: labelCode)
+            if (required) labelMsg += ' *'
+            label('for': attrs.id, labelMsg)
+        }
+
+        def saveAccess = true
+        if (attrs.saveAccess != null) {
+            origAttrsMinusCustom.remove('saveAccess')
+            saveAccess = SpringSecurityUtils.ifAnyGranted(attrs.saveAccess)
+        }
+        if (!saveAccess) attrs.create = null
+
+        if (attrs.create != null) origAttrsMinusCustom.remove('create')
+        if (attrs.dialogTitle != null) origAttrsMinusCustom.remove('dialogTitle')
+        if (attrs.labelCode != null) origAttrsMinusCustom.remove('labelCode')
+        if (attrs.controller != null) origAttrsMinusCustom.remove('controller')
+        if (attrs.hideShow != null) origAttrsMinusCustom.remove('hideShow')
+        if (origAttrsMinusCustom['class'] != null) {
+            origAttrsMinusCustom['class'] = origAttrsMinusCustom['class'] + " form-control"
+        } else {
+            origAttrsMinusCustom['class'] = "form-control"
+        }
+
+        def readOnly = (attrs.readOnly != null && Boolean.valueOf(attrs.readOnly)) ? true : false
+        if (request.xhr) {
+            origAttrsMinusCustom['style'] = "width:100%;"
+        } else {
+            def width = 100;
+            if (!hideShow) width -= 10
+            if (attrs.create != null) width -= 10
+            origAttrsMinusCustom['style'] = "width:$width%;"
+        }
+
+        if (readOnly) {
+            origAttrsMinusCustom['disabled'] = 'disabled'
+            origAttrsMinusCustom.remove('readOnly')
+        }
+
+        def disabled = (attrs.disabled != null && Boolean.valueOf(attrs.disabled)) ? true : false
+        if (readOnly) {
+            origAttrsMinusCustom['disabled'] = 'disabled'
+        }
+
+        sb.append("<div class='col-sm-4'>").append(g.select(origAttrsMinusCustom))
+
+        if (!request.xhr) {
+            if (!hideShow){
+                sb.append("<a class='create btn btn-info add-inline' ").append("id='show_").append(attrs.id).append("'").append("><span class='fa fa-edit'></span></a>")
+            }
+            if (attrs.create != null && !readOnly) {
+                // button
+                sb.append("<a class='create btn btn-primary add-inline' ").append("id='add_").append(attrs.id).append("'").append("><span class='fa fa-plus'></span></a>")
+            }
+        }
+
+        sb.append("</div>")
+        sb.append("</div>")
+
+        // JavaScript Code
+        def locale = RequestContextUtils.getLocale(request).toString().substring(0, 2)
+        sb.append("<script>").append("\$(document).ready(function() {")
         if (!request.xhr) {
             def dialogTitleCode = attrs.dialogTitle != null ? attrs.dialogTitle : attrs.controller
             if (!hideShow) {
@@ -293,6 +425,118 @@ class BlocksTagLib {
         out << sb.toString();
     }
 
+    /**
+     * Datepicker Taglib by fgroch
+     *
+     * @usages:
+     * - Minimum setup: fieldName - used in name in input so must be required, beanName - is required when rendering inputOnly
+     * - Available attributes:
+     * 1) String fieldName (required) - name of input and used in identifier of DOM element if id it's not defined
+     * 2) String beanName (optional) - beanName used in build labelCode and in identifier of DOM element if id it's not defined
+     * 3) String error (optional) - if render parent div with given css class
+     * 4) Boolean inputOnly (optional) - flag defining if skip rendering label (default false)
+     * 5) String value (optional) - value default in input
+     * 6) String id (optional) - DOM element identifier (div wrapper and input)
+     * 7) Boolean renderIcon (optional) - flag defining if rendering icon of datepicker (default true)
+     * 8) String dateFormat - string format for date
+     *
+     */
+    def datepicker = { attrs, body ->
+        if (attrs.fieldName == null) throw new IllegalArgumentException("Attribute 'fieldName' must be defined!")
+
+        def inputOnly = attrs.inputOnly != null ? Boolean.valueOf(attrs.inputOnly) : false
+        if (!inputOnly){
+            if (attrs.beanName == null) throw new IllegalArgumentException("Attribute 'beanName' must be defined!")
+        }
+
+        def error = StringUtils.isNotBlank(attrs.error) ? attrs.error : '';
+        attrs.remove('error')
+
+        def val = attrs.value;
+
+        def beanName = attrs.beanName
+        def fieldName = attrs.fieldName
+
+        def renderIcon = attrs.renderIcon != null ? Boolean.valueOf(attrs.renderIcon) : true
+
+        def identifier = attrs.id != null ? attrs.id : attrs.beanName + "_" + attrs.fieldName
+        def inputId = "datepicker_" + identifier
+        //if (request.xhr) inputId += "_xhr"
+        def wrapperId = "datepicker_wrapper_" + identifier
+
+        def format = attrs.dateFormat != null ? attrs.dateFormat : "yyyy-mm-dd"
+        def formatLambda = "{toDisplay: function (date, format, language) {\n" +
+                "           if (date === null) {" +
+                "               return '';};" +
+                "            var d = new Date(date);\n" +
+                "            return d.toISOString();\n" +
+                "        }}"
+        def stringDate = ""
+        if (val != null) {
+            stringDate = new SimpleDateFormat("yyyy-MM-dd").format(val)
+        } else {
+            stringDate = ""
+        }
+        //def stringDate = "";
+        //if (val !=  null) stringDate = val.format(format.getGroovyFormat())
+
+
+        def labelCode = attrs.labelCode != null ? attrs.labelCode : beanName + '.' + fieldName + '.' + 'label'
+
+        def label = g.message(code: labelCode)
+
+        def locale = RequestContextUtils.getLocale(request).toString().substring(0, 2)
+
+        def disabled = (attrs.disabled != null && Boolean.valueOf(attrs.disabled)) ? 'disabled="true"' : ''
+
+        def readOnly = (attrs.readOnly != null && Boolean.valueOf(attrs.readOnly)) ? 'readOnly="true"' : ''
+
+        def required = (attrs.required != null && Boolean.valueOf(attrs.required))
+        def requiredAttr = ''
+
+        if (required){
+            requiredAttr << 'required = "required" '
+            requiredAttr << 'oninvalid = "this.setCustomValidity(\'' << g.message(code: 'default.required') << '\');"'
+            requiredAttr << 'oninput = "this.setCustomValidity(\'\');"'
+            label += ' *'
+        }
+
+        final StringBuilder sb = new StringBuilder();
+
+        // HTML Code
+        sb.append("<div class='" + error + "'>")
+
+        if (!inputOnly) sb.append('<div class="col-sm-2 control-label"><label>' + label + '</label></div>')
+
+        sb.append('<div class="col-sm-4">')
+
+        if (renderIcon && StringUtils.isBlank(disabled) && StringUtils.isBlank(readOnly)) sb.append('<div class="input-group date datepicker" id="' + wrapperId + '">')
+
+        sb.append('<input type="text" class="form-control" ' + requiredAttr + disabled + readOnly + ' name="' + fieldName + '" id="' + inputId + '" value="' + stringDate + '">')
+
+        if (renderIcon && StringUtils.isBlank(disabled) && StringUtils.isBlank(readOnly)) sb.append('<span class="input-group-addon"><span class="fa fa-calendar"></span></span>')
+
+        if (renderIcon && StringUtils.isBlank(disabled) && StringUtils.isBlank(readOnly)) sb.append('</div>')
+
+        sb.append('</div>')
+        sb.append('</div>')
+
+        // JavaScript Code
+        if (StringUtils.isBlank(disabled) && StringUtils.isBlank(readOnly))
+            sb.append("<script>")
+                    .append("\$(document).ready(function() {")
+                    .append("\$('#").append(renderIcon ? wrapperId : inputId).append("').datepicker({")
+                    .append("language:'").append(locale).append("',")
+                    .append("format:'").append(format).append("',")
+                    //.append("format:").append(formatLambda).append(",")
+                    .append("todayHighlight: true,")
+                    .append("autoclose: true")
+                    .append("});")
+                    .append("});")
+                    .append("</script>")
+        out << sb.toString();
+    }
+
     def beanErrors = { attrs ->
         def bean = attrs.remove('bean')
         if (bean) {
@@ -310,7 +554,7 @@ class BlocksTagLib {
 
     def field = { attrs, body ->
         if (attrs.id == null) attrs.id = "field_" + attrs.hashCode()
-        if (request.xhr) attrs.id += "_xhr"
+        //if (request.xhr) attrs.id += "_xhr"
         def error = StringUtils.isNotBlank(attrs.error) ? attrs.error : '';
         attrs.remove('error')
         def numeric = attrs.numeric != null ? Boolean.valueOf(attrs.numeric) : false
@@ -331,6 +575,9 @@ class BlocksTagLib {
             origAttrsMinusCustom['oninput'] = "this.setCustomValidity('');"
         }
 
+        def extended = (attrs.extended != null && Boolean.valueOf(attrs.extended))
+        origAttrsMinusCustom.remove('extended')
+
         builder."div"('class': 'col-sm-2 control-label') {
             def labelCode = attrs.labelCode != null ? attrs.labelCode : 'label'
             def labelMsg = g.message(code: labelCode)
@@ -343,16 +590,23 @@ class BlocksTagLib {
         def readOnly = (attrs.readOnly != null && Boolean.valueOf(attrs.readOnly))
         origAttrsMinusCustom.remove('readOnly')
 
-        if (origAttrsMinusCustom['class'] != null) {
-            origAttrsMinusCustom['class'] = origAttrsMinusCustom['class'] + " form-control"
-        } else {
-            origAttrsMinusCustom['class'] = "form-control"
+        if (attrs.type != 'checkbox') {
+            if (origAttrsMinusCustom['class'] != null) {
+                origAttrsMinusCustom['class'] = origAttrsMinusCustom['class'] + " form-control"
+            } else {
+                origAttrsMinusCustom['class'] = "form-control"
+            }
         }
         if (readOnly) {
             origAttrsMinusCustom['readOnly'] = "readOnly"
         }
 
-        writer.append("<div class='col-sm-4'>")
+
+        if (extended) {
+            writer.append("<div class='col-sm-10'>")
+        } else {
+            writer.append("<div class='col-sm-4'>")
+        }
         if (attrs.type == 'checkbox') {
             if (origAttrsMinusCustom['style'] != null) {
                 origAttrsMinusCustom['style'] = origAttrsMinusCustom['style'] + " width: auto;"
@@ -1000,7 +1254,30 @@ class BlocksTagLib {
                 .append("',onClick:function(\$noty){\$noty.close();}}]});}")
 
 
-        out << createLink('', 'btn btn-app-sms btn-danger btn-table-header', 'fa fa-trash', sb.toString());
+        out << createLink('', 'btn btn-sm btn-danger btn-table-header', 'fa fa-trash', sb.toString());
+    }
+
+    def deleteConfirmationLink = { attrs ->
+        if (attrs.id == null) throw new IllegalArgumentException("Attribute 'id' must be defined!", null)
+
+        def linkAttr = [:]
+        linkAttr['id'] = attrs.id
+        if (attrs.deleteParams != null) linkAttr['params'] = attrs.deleteParams
+        if (attrs.controller != null) linkAttr['controller'] = attrs.controller
+        if (attrs.deleteAction != null) {
+            linkAttr['action'] = attrs.deleteAction
+        } else {
+            linkAttr['action'] = "delete"
+        }
+
+        def deleteLink =  g.createLink(linkAttr)
+
+        StringBuilder sb = new StringBuilder("<a type=\"button\" role=\"button\" class=\"btn btn-outline\" href=\"deleteConfirmationLink")
+        sb.append(deleteLink)
+        sb.append("\">")
+        sb.append(g.message(code: 'default.button.confirm.positive'))
+        sb.append("<a/>")
+        out << sb.toString()
     }
 
     /**
@@ -1055,6 +1332,114 @@ class BlocksTagLib {
         sb.append("});").append("</script>")
 
         sb.flush()
+
+        out << sb.toString()
+    }
+
+    /**
+     * Creates button with link to ajax call for the form to create bean
+     *
+     * @usages:
+     * - Minimum setup: controller
+     * - Available attributes:
+     * 1) String controller (required) - controller with ajax action that return form
+     * 2) String id (optional) - DOM identifier of element
+     * 3) String action (optional) - action that return form, default is ajaxCreate
+     * 4) String saveAction (optional) - action that saves form, default is ajaxSave
+     * 5) String iconClass (optional) - CSS class added to icon element, default is fa fa-plus
+     * 6) String params (optional) - additional params passed to get form action
+     * 7) String class (optional) - CSS class added to link element
+     */
+    def ajaxCreateButton = { attrs, body ->
+
+        if (attrs.controller == null)
+            throw new IllegalArgumentException("Attribute 'controller' must be defined!", null)
+
+        if (attrs.id == null) attrs.id = "create_" + attrs.hashCode()
+        if (attrs.action == null) attrs.action = "ajaxCreate"
+        if (attrs.saveAction == null) attrs.saveAction = "ajaxSave"
+        if (attrs.saveParams == null) attrs.saveParams = []
+        if (attrs.iconClass == null) attrs.iconClass = "fa fa-plus"
+
+        def linkAttr = [controller: attrs.controller, action: attrs.action]
+
+        if (attrs.params != null) {
+            linkAttr['params'] = attrs.params
+        }
+
+        def createLink = g.createLink(linkAttr)
+
+        def dialogTitle = g.message(code: 'default.button.create.label') + "&hellip;"
+
+        StringBuilder sb = new StringBuilder()
+        sb.append("<button type='button' ")
+            .append("id='${attrs.id}' ")
+            .append("class='${attrs.class}'>")
+            .append(" <span class='${attrs.iconClass}'></span>")
+            .append("</button>")
+
+        def saveLink = g.createLink(controller: attrs.controller, action: attrs.saveAction, params: attrs.saveParams)
+
+
+        // JavaScript Code
+
+        sb.append("<script>")
+        sb.append(buildAjaxForm(attrs.id, attrs.controller, createLink, null, saveLink, dialogTitle))
+        sb.append("</script>")
+
+        out << sb.toString()
+    }
+
+    /**
+     * Creates button with link to ajax call for the form to create bean
+     *
+     * @usages:
+     * - Minimum setup: controller
+     * - Available attributes:
+     * 1) String controller (required) - controller with ajax action that return form
+     * 2) String id (optional) - DOM identifier of element
+     * 3) String action (optional) - action that return form, default is ajaxCreate
+     * 4) String saveAction (optional) - action that saves form, default is ajaxSave
+     * 5) String iconClass (optional) - CSS class added to icon element, default is fa fa-plus
+     * 6) String params (optional) - additional params passed to get form action
+     * 7) String class (optional) - CSS class added to link element
+     */
+    def ajaxEditButton = { attrs, body ->
+
+        if (attrs.controller == null)
+            throw new IllegalArgumentException("Attribute 'controller' must be defined!", null)
+
+        if (attrs.id == null) attrs.id = "create_" + attrs.hashCode()
+        if (attrs.action == null) attrs.action = "ajaxEdit"
+        if (attrs.saveAction == null) attrs.saveAction = "ajaxSave"
+        if (attrs.saveParams == null) attrs.saveParams = []
+        if (attrs.iconClass == null) attrs.iconClass = "fa fa-eye"
+
+        def linkAttr = [controller: attrs.controller, action: attrs.action, id: attrs.objectId]
+
+        if (attrs.params != null) {
+            linkAttr['params'] = attrs.params
+        }
+
+        def createLink = g.createLink(linkAttr)
+
+        def dialogTitle = g.message(code: 'default.button.update.label') + "&hellip;"
+
+        StringBuilder sb = new StringBuilder()
+        sb.append("<button type='button' ")
+                .append("id='${attrs.id}' ")
+                .append("class='${attrs.class}'>")
+                .append(" <span class='${attrs.iconClass}'></span>")
+                .append("</button>")
+
+        def saveLink = g.createLink(controller: attrs.controller, action: attrs.saveAction, id: attrs.objectId)
+
+
+        // JavaScript Code
+
+        sb.append("<script>")
+        sb.append(buildAjaxForm(attrs.id, attrs.controller, createLink, null, saveLink, dialogTitle))
+        sb.append("</script>")
 
         out << sb.toString()
     }
@@ -1345,6 +1730,52 @@ class BlocksTagLib {
         writer.flush()
         return writer.toString()
     }
+
+    private String buildAjaxForm(final String buttonId, final String controller, final String createLink, final String additionalCreateLinkAttr, final String saveLink, final String dialogTitleCode) {
+        final StringBuilder sb = new StringBuilder()
+        sb.append("\$('#$buttonId').on('click', function(event) {")
+            .append("var html_object = '';")
+            .append("\$.ajax({")
+            .append("type: 'POST',")
+            .append("url: '${createLink}")
+            .append(StringUtils.isNotBlank(additionalCreateLinkAttr) ? "/${additionalCreateLinkAttr}'" : "'").append(",")
+            .append("success: function(model) {")
+            .append("html_object = \"<form id='${controller}Form' role='form'>\";")
+            .append("html_object = html_object +  model;")
+            .append("html_object = html_object + \"</form>\";")
+            .append("console.log(html_object);")
+            .append("var dialog = bootbox.dialog({")
+            .append("title: '").append(g.message(code: dialogTitleCode)).append("',")
+            .append("message: html_object,")
+            .append("size: 'large',")
+            .append("buttons: {")
+            .append("cancel: {")
+            .append("label: '<i class=\"fa fa-times\"></i> ").append(g.message(code: 'default.button.cancel.label')).append("',")
+            .append("className: 'btn-danger pull-left',")
+            .append("callback: function(){console.log('Custom cancel clicked');}")
+            .append("},")
+            .append("ok: {")
+            .append("label: '<i class=\"fa fa-check\"></i> ").append(g.message(code: 'default.button.save.label')).append("',")
+            .append("className: 'btn-info pull-right',")
+            .append("callback: function(){")
+            .append("console.log('Custom OK clicked');")
+            .append("\$.ajax({")
+            .append("type: 'POST',")
+            .append("url: '${saveLink}',")
+            .append("data: \$('#${controller}Form').serialize(),")
+            .append("success: function(saveModel) {location.reload();}")
+            .append("});")
+            .append("}")
+            .append("}")
+            .append("}")
+            .append("});")
+            .append("\$('.bootbox-body .datepicker').datepicker({language:'pl',format:'yyyy-mm-dd',todayHighlight: true,autoclose: true});")
+            .append("}")
+            .append("});")
+            .append("});")
+        return sb.toString()
+    }
+
 
     private String createAddAjaxForm(final String buttonId, final String controller, final String formLink, final String additionalFormLinkAttr, final String saveLink, final String dialogTitleCode, final String htmlObjectId, final boolean autocomplete, final boolean saveAccess) {
         def formId = controller + "Form"
