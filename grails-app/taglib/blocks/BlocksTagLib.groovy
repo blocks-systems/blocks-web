@@ -175,7 +175,9 @@ class BlocksTagLib {
 
         sb.flush()
 
-        out << sb.toString()
+        def sbout = sb.toString()
+
+        out << sbout
     }
 
     /**
