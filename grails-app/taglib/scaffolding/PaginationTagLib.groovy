@@ -49,7 +49,7 @@ class PaginationTagLib {
         int firststep = 1
         int laststep = Math.round(Math.ceil(total / max))
 
-        writer << '<ul>'
+        writer << '<ul class="pagination">'
 
         // display previous link when not on firststep
         if (currentstep > firststep) {
