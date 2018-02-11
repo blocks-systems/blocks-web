@@ -324,7 +324,7 @@ class BlocksTagLib {
      * 5) String value (optional) - value default in input
      * 6) Boolean pickTime (optional) - flag defining if datepicker should pick time (default false)
      * 7) Boolean pickDate (optional) - flag defining if datepicker should pick date (default true if pickTime is not defined)
-     * 8) Boolean renderTimeWithDate (optional) - flag defining if rendering timepicker side by side with datepicker
+     * 8) Boolean inline (optional) - flag defining if rendering timepicker is rendered inline
      * 9) String id (optional) - DOM element identifier (div wrapper and input)
      * 10) Boolean renderIcon (optional) - flag defining if rendering icon of datetimepicker (default true)
      *
@@ -350,7 +350,7 @@ class BlocksTagLib {
         // pickdate - if picktime it's not defined and pickdate it's not defined it's true otherwise it's false or overrided by define in tag
         def pickDate = attrs.pickDate != null ? Boolean.valueOf(attrs.pickDate) : (attrs.pickTime != null ? false : true)
         // render side by side time and date picker
-        def sideBySide = attrs.renderTimeWithDate != null ? Boolean.valueOf(attrs.renderTimeWithDate) : false
+        def inline = attrs.inline != null ? Boolean.valueOf(attrs.inline) : false
 
         def renderIcon = attrs.renderIcon != null ? Boolean.valueOf(attrs.renderIcon) : true
 
@@ -399,11 +399,11 @@ class BlocksTagLib {
 
         sb.append('<div class="col-sm-4">')
 
-        if (renderIcon && StringUtils.isBlank(disabled) && StringUtils.isBlank(readOnly)) sb.append('<div class="input-group date datepicker" id="' + wrapperId + '">')
+        if (renderIcon && StringUtils.isBlank(disabled) && StringUtils.isBlank(readOnly)) sb.append('<div class="input-group datetime datetimepicker" id="' + wrapperId + '">')
 
         sb.append('<input type="text" class="form-control" ' + requiredAttr + disabled + readOnly + ' name="' + fieldName + '" id="' + inputId + '" value="' + stringDate + '">')
 
-        if (renderIcon && StringUtils.isBlank(disabled) && StringUtils.isBlank(readOnly)) sb.append('<span class="input-group-addon"><span class="glyphicon-calendar glyphicon"></span></span>')
+        if (renderIcon && StringUtils.isBlank(disabled) && StringUtils.isBlank(readOnly)) sb.append('<span class="input-group-addon"><span class="fa fa-calendar"></span></span>')
 
         if (renderIcon && StringUtils.isBlank(disabled) && StringUtils.isBlank(readOnly)) sb.append('</div>')
 
@@ -415,12 +415,13 @@ class BlocksTagLib {
             sb.append("<script>")
                     .append("\$(document).ready(function() {")
                     .append("\$('#").append(renderIcon ? wrapperId : inputId).append("').datetimepicker({")
-                    .append("language:'").append(locale).append("',")
-                    .append("pickDate:").append(pickDate).append(",")
-                    .append("pickTime:").append(pickTime).append(",")
-                    .append("pickSeconds:false,")
+                    .append("locale:'pl',")
+                    //.append("widgetPositioning:{horizontal: 'auto',vertical: 'top'},")
+                    .append("showClear:true,")
+                    .append("showClose:true,")
+                    //.append("sideBySide:true,")
                     .append("format:'").append(format.getJavaScriptFormatFormat()).append("',")
-                    .append("sideBySide:").append(sideBySide)
+                    .append("inline:").append(inline)
                     .append("});")
                     .append("});")
                     .append("</script>")
