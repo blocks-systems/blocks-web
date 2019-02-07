@@ -1366,6 +1366,15 @@ class BlocksTagLib {
 
         def linkAttr = [controller: attrs.controller, action: attrs.action]
 
+        def toggleAppend = ""
+        if (attrs.'data-toggle' && attrs.'data-toggle' == "tooltip")  {
+            toggleAppend = " data-toggle='tooltip' data-placement='${attrs.'data-placement' == null ? 'top' : attrs.'data-placement'}' data-title='${attrs.title == null ? '' : attrs.title}' "
+        }
+        def titleAttr = ""
+        if (attrs.title)  {
+            titleAttr = " title='${attrs.title}' "
+        }
+
         if (attrs.params != null) {
             linkAttr['params'] = attrs.params
         }
@@ -1377,6 +1386,8 @@ class BlocksTagLib {
         StringBuilder sb = new StringBuilder()
         sb.append("<button type='button' ")
             .append("id='${attrs.id}' ")
+            .append(toggleAppend)
+            .append(titleAttr)
             .append("class='${attrs.class}'>")
             .append(" <span class='${attrs.iconClass}'></span>")
             .append("</button>")
@@ -1420,6 +1431,15 @@ class BlocksTagLib {
 
         def linkAttr = [controller: attrs.controller, action: attrs.action, id: attrs.objectId]
 
+        def toggleAppend = ""
+        if (attrs.'data-toggle' && attrs.'data-toggle' == "tooltip")  {
+            toggleAppend = " data-toggle='tooltip' data-placement='${attrs.'data-placement' == null ? 'top' : attrs.'data-placement'}' data-title='${attrs.title == null ? '' : attrs.title}' "
+        }
+        def titleAttr = ""
+        if (attrs.title)  {
+            titleAttr = " title='${attrs.title}' "
+        }
+
         if (attrs.params != null) {
             linkAttr['params'] = attrs.params
         }
@@ -1431,6 +1451,8 @@ class BlocksTagLib {
         StringBuilder sb = new StringBuilder()
         sb.append("<button type='button' ")
                 .append("id='${attrs.id}' ")
+                .append(toggleAppend)
+                .append(titleAttr)
                 .append("class='${attrs.class}'>")
                 .append(" <span class='${attrs.iconClass}'></span>")
                 .append("</button>")
